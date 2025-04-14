@@ -6,7 +6,7 @@ on:
      inputs:
        KERNEL_TREE:
          description: 'Kernel Tree'
-         default: 'https://github.com/SenseiiX/fusionX_sm8250'
+         default: 'https://github.com/Project-FusionX/fusionX_kernel_sm8250'
          required: true
        KERNEL_TREE_BRANCH:
          description: 'Kernel Tree Branch'
