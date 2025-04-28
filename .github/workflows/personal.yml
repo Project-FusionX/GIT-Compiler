@@ -42,7 +42,7 @@ jobs:
   build_kernel:
     strategy:
       matrix:
-        type: [original, modified]
+        type: [original, los, modified]
     runs-on: ubuntu-latest
     env:
       UPLOAD_TO_RELEASE: false
@@ -110,6 +110,12 @@ jobs:
           cd kernel_tree
           bash nextpatch.sh
           
+          # Apply LOS-IR patch only for the 'los' build type
+          if [[ "${{ matrix.type }}" == "los" ]]; then
+            echo "Applying LOS-IR patch for the LOS build..."
+            patch -p1 -f < "0001-LOS-IR.patch"
+          fi
+          
       - name: Apply Modifications (if modified build)
         if: matrix.type == 'modified'
         run: |
@@ -141,22 +147,38 @@ jobs:
           cd kernel_tree
           make O=out vendor/munch_defconfig
           make O=out CC=clang -j$(nproc --all) CROSS_COMPILE=aarch64-linux-gnu- LLVM=1 LLVM_IAS=1
+          
           if [[ "${{ matrix.type }}" == "original" ]]; then
             mv out/arch/arm64/boot/dtbo.img ../munch-aosp-dtbo.img
             mv out/arch/arm64/boot/dtb ../munch-normal-dtb
             cp out/arch/arm64/boot/Image.gz ../Image.gz
+          elif [[ "${{ matrix.type }}" == "los" ]]; then
+            mv out/arch/arm64/boot/dtbo.img ../munch-los-dtbo.img
           else
             mv out/arch/arm64/boot/dtbo.img ../munch-miui-dtbo.img
             mv out/arch/arm64/boot/dtb ../munch-effcpu-dtb
           fi
 
-      - name: Verify modified build artifacts
-        if: matrix.type == 'modified'
+      - name: Verify build artifacts
         run: |
-          ls -la munch-miui-dtbo.img munch-effcpu-dtb
-          if [[ ! -s munch-miui-dtbo.img || ! -s munch-effcpu-dtb ]]; then
-            echo "Error: One or more modified build artifacts is missing or empty"
-            exit 1
+          if [[ "${{ matrix.type }}" == "original" ]]; then
+            ls -la munch-aosp-dtbo.img munch-normal-dtb Image.gz
+            if [[ ! -s munch-aosp-dtbo.img || ! -s munch-normal-dtb || ! -s Image.gz ]]; then
+              echo "Error: One or more original build artifacts is missing or empty"
+              exit 1
+            fi
+          elif [[ "${{ matrix.type }}" == "los" ]]; then
+            ls -la munch-los-dtbo.img
+            if [[ ! -s munch-los-dtbo.img ]]; then
+              echo "Error: LOS DTBO is missing or empty"
+              exit 1
+            fi
+          else
+            ls -la munch-miui-dtbo.img munch-effcpu-dtb
+            if [[ ! -s munch-miui-dtbo.img || ! -s munch-effcpu-dtb ]]; then
+              echo "Error: One or more modified build artifacts is missing or empty"
+              exit 1
+            fi
           fi
           
       - name: Record build end time
@@ -174,6 +196,7 @@ jobs:
           name: kernel-${{ matrix.type }}
           path: |
             munch-aosp-dtbo.img
+            munch-los-dtbo.img
             munch-miui-dtbo.img
             munch-normal-dtb
             munch-effcpu-dtb
@@ -212,6 +235,12 @@ jobs:
           name: kernel-original
           path: kernel-original
 
+      - name: Download Kernel Build LOS
+        uses: actions/download-artifact@v4
+        with:
+          name: kernel-los
+          path: kernel-los
+
       - name: Download Kernel Build Modified
         uses: actions/download-artifact@v4
         with:
@@ -227,10 +256,20 @@ jobs:
       - name: Clone AnyKernel3
         run: git clone --recursive --depth=1 ${{ github.event.inputs.ANYKERNEL_URL }} -b ${{ github.event.inputs.ANYKERNEL_BRANCH }} AnyKernel3
 
-      - name: Move Kernel Files to AnyKernel3
+      - name: Move Kernel Files to AnyKernel3 and List them
         run: |
-          mv kernel-original/* AnyKernel3/
-          mv kernel-modified/* AnyKernel3/
+          # Move the files from each build directory to AnyKernel3
+          cp -v kernel-original/* AnyKernel3/ || true
+          cp -v kernel-los/* AnyKernel3/ || true
+          cp -v kernel-modified/* AnyKernel3/ || true
+          
+          # List all files in AnyKernel3 to verify
+          echo "Contents of AnyKernel3 directory:"
+          ls -la AnyKernel3/
+          
+          # Specifically check for DTBO files
+          echo "DTBO files in AnyKernel3:"
+          ls -la AnyKernel3/*dtbo.img || echo "No DTBO files found!"
          
       - name: Define ZIP Name
         run: |
@@ -254,6 +293,10 @@ jobs:
       - name: Package Kernel
         run: |
           cd AnyKernel3
+          # List files before zipping
+          echo "Files to be included in zip:"
+          ls -la
+          
           zip -r9 ../${{ env.ZIP_NAME }}.zip *
 
       - name: Read build metrics
