@@ -101,7 +101,7 @@ jobs:
         run: |
           cd kernel_tree
           echo "Changing LTO configuration from FULL to THIN..."
-          sed -i '
+          sed -i -e '
           /CONFIG_ARCH_SUPPORTS_LTO_CLANG=y/c\CONFIG_ARCH_SUPPORTS_LTO_CLANG=y
           /# CONFIG_ARCH_SUPPORTS_LTO_CLANG_THIN is not set/c\CONFIG_ARCH_SUPPORTS_LTO_CLANG_THIN=y
           /CONFIG_HAS_LTO_CLANG=y/c\CONFIG_HAS_LTO_CLANG=y
@@ -125,12 +125,13 @@ jobs:
         if: matrix.type == 'modified'
         run: |
           cd kernel_tree
-          sed -i '/<2553600>,/c\<2553600>;' arch/arm64/boot/dts/vendor/qcom/kona.dtsi 
-          sed -i '/<2649600>,/c\//<2649600>,' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
-          sed -i '/<2745600>,/c\//<2745600>,' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
-          sed -i '/<2841600>;/c\//<2841600>;' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
-          sed -i 's/qcom,mdss-pan-physical-width-dimension = <70>;$/qcom,mdss-pan-physical-width-dimension = <695>;/' arch/arm64/boot/dts/vendor/qcom/dsi-panel-l11r-38-08-0a-dsc-cmd.dtsi
-          sed -i 's/qcom,mdss-pan-physical-height-dimension = <155>;$/qcom,mdss-pan-physical-height-dimension = <1546>;/' arch/arm64/boot/dts/vendor/qcom/dsi-panel-l11r-38-08-0a-dsc-cmd.dtsi
+          sed -i -e '/<2553600>,/c\<2553600>;' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
+          sed -i -e '/<2649600>,/c\//<2649600>,' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
+          sed -i -e '/<2745600>,/c\//<2745600>,' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
+          sed -i -e '/<2841600>,/c\//<2841600>,' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
+          sed -i -e '/<3187200>;/c\//<3187200>;' arch/arm64/boot/dts/vendor/qcom/kona.dtsi
+          sed -i -e 's/qcom,mdss-pan-physical-width-dimension = <70>;$/qcom,mdss-pan-physical-width-dimension = <695>;/' arch/arm64/boot/dts/vendor/qcom/dsi-panel-l11r-38-08-0a-dsc-cmd.dtsi
+          sed -i -e 's/qcom,mdss-pan-physical-height-dimension = <155>;$/qcom,mdss-pan-physical-height-dimension = <1546>;/' arch/arm64/boot/dts/vendor/qcom/dsi-panel-l11r-38-08-0a-dsc-cmd.dtsi
       
       - name: Record build start time
         id: build_start
