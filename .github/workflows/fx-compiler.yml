@@ -11,7 +11,7 @@ on:
         required: true
       VERSION:
         description: 'Zip Version'
-        default: '1.x'
+        default: 'PRIVATE'
         required: false
       ANYKERNEL_URL:
         description: 'AnyKernel Url'
@@ -35,9 +35,9 @@ on:
         required: false
         type: choice
         options:
-          - aosp clang
           - neutron clang
-        default: 'aosp clang'
+          - aosp clang
+        default: 'neutron clang'
  
 jobs:
   build_kernel:
